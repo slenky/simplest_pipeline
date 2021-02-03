@@ -1,0 +1,76 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: bonds-test-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.0.4, pipelines.kubeflow.org/pipeline_compilation_time: '2021-02-03T12:02:48.367879',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "100", "name":
+      "scenarios", "optional": true, "type": "Integer"}, {"default": "1", "name":
+      "pods", "optional": true, "type": "Integer"}, {"default": "message from pipeline",
+      "name": "message", "optional": true, "type": "String"}], "name": "Bonds Test"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.0.4}
+spec:
+  entrypoint: bonds-test
+  templates:
+  - name: bonds-test
+    inputs:
+      parameters:
+      - {name: message}
+      - {name: scenarios}
+    dag:
+      tasks:
+      - name: for-loop-for-loop-f596700e-1
+        template: for-loop-for-loop-f596700e-1
+        dependencies: [test1]
+        arguments:
+          parameters:
+          - {name: scenarios, value: '{{inputs.parameters.scenarios}}'}
+        withParam: '{{workflow.parameters.pods}}'
+      - name: test1
+        template: test1
+        arguments:
+          parameters:
+          - {name: message, value: '{{inputs.parameters.message}}'}
+  - name: for-loop-for-loop-f596700e-1
+    inputs:
+      parameters:
+      - {name: scenarios}
+    dag:
+      tasks:
+      - name: scenarios
+        template: scenarios
+        arguments:
+          parameters:
+          - {name: scenarios, value: '{{inputs.parameters.scenarios}}'}
+  - name: scenarios
+    container:
+      args: [--scenarios, '{{inputs.parameters.scenarios}}']
+      command: [python, scripts/simplest_pipeline/step2.py]
+      image: docker.yq.credo.be/cust/yq-python-ml-notebook:v2.5.6.1
+    inputs:
+      parameters:
+      - {name: scenarios}
+    metadata:
+      labels:
+        yq-environment: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"inputs": [{"name": "scenarios",
+          "type": "Integer"}], "name": "Generate"}'}
+  - name: test1
+    container:
+      args: [--message, '{{inputs.parameters.message}}']
+      command: [python, scripts/simplest_pipeline/step1.py]
+      image: docker.yq.credo.be/cust/yq-python-ml-notebook:v2.5.6.1
+    inputs:
+      parameters:
+      - {name: message}
+    metadata:
+      labels:
+        yq-environment: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"inputs": [{"name": "message",
+          "type": "String"}], "name": "Clean"}'}
+  arguments:
+    parameters:
+    - {name: scenarios, value: '100'}
+    - {name: pods, value: '1'}
+    - {name: message, value: message from pipeline}
+  serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 720
